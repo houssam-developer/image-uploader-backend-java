@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.he.imageuploader.context.StorageProperties;
 import org.he.imageuploader.domain.service.StorageService;
+import org.he.imageuploader.model.StoreFileReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -16,7 +17,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static org.he.imageuploader.utils.CommonAssertions.assertIsValidString;
 
@@ -44,41 +44,35 @@ public class DefaultStorageService implements StorageService {
     }
 
     @Override
-    public void store(MultipartFile multipartFile) {
-        Consumer<Boolean> storeStatus = result -> {
-                if (result) {
-                    log.info("logStoreStatus() SUCCESS");
-                } else {
-                    log.info("❗ logStoreStatus() FAILED");
-                }
-        };
+    public CompletableFuture<StoreFileReport> store(MultipartFile multipartFile) {
+        var report = new StoreFileReport();
 
-        CompletableFuture
+        return CompletableFuture
                 .supplyAsync(() -> deleteAll())
                 .completeOnTimeout(false, 5000, TimeUnit.MILLISECONDS)
-                .thenApply(it -> storeFile(it, multipartFile))
-                .thenAccept(storeStatus);
+                .thenApply(it -> storeFile(it, multipartFile));
     }
 
     @Override
-    public Boolean storeFile(Boolean isDeleteSuccess, MultipartFile multipartFile) {
+    public StoreFileReport storeFile(Boolean isDeleteSuccess, MultipartFile multipartFile) {
         log.info("🚧 storeFile()");
+        val storeFileReport = new StoreFileReport();
 
         if (!isDeleteSuccess) {
             log.info("🚩 storeFile() previous delete failed, can not store the new file");
-            return false;
+            return new StoreFileReport(false, "previous delete failed, can not store the new file");
         }
 
         try {
             if (multipartFile.isEmpty()) {
                 log.info("🚧 storeFile() 🚩 multipartFile is empty");
-                return false;
+                return new StoreFileReport(false, "multipartFile is empty");
             }
 
             val originalFilename = multipartFile.getOriginalFilename();
             if (!assertIsValidString(originalFilename)) {
                 log.info("🚧 storeFile() 🚩 originalFilename is not valid");
-                return false;
+                return new StoreFileReport(false, "multipartFile.originalFilename is not valid");
             }
 
             val destinationFile = this.rootStorage
@@ -88,22 +82,26 @@ public class DefaultStorageService implements StorageService {
 
             if (!destinationFile.getParent().equals(this.rootStorage.toAbsolutePath())) {
                 log.info("🚧 storeFile() 🚩 Cannot store file outside current directory");
-                return false;
+                return new StoreFileReport(false, "Cannot store file outside current directory");
             }
 
             try {
                 val inputStream = multipartFile.getInputStream();
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
-                return Files.exists(destinationFile);
+                if (Files.exists(destinationFile)) {
+                    return new StoreFileReport(true, "");
+                } else {
+                    return new StoreFileReport(false, "check if new file exists failed");
+                }
 
             } catch(Exception exception) {
                 log.info("🚫 storeFile() Files.copy failed #exception: " + exception);
-                return false;
+                return new StoreFileReport(false, "Files.copy failed #exception: " + exception);
             }
         } catch(Exception exception) {
             log.info("🚫 storeFile() #exception: " + exception);
-            return false;
+            return new StoreFileReport(false, exception.getMessage());
         }
     }
 

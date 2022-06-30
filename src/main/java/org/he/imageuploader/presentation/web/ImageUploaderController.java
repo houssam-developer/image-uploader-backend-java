@@ -6,17 +6,19 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.he.imageuploader.domain.service.StorageService;
+import org.he.imageuploader.model.StoreFileReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-@RestController
-@RequestMapping("/api")
+@Controller
 @CrossOrigin("*")
 public class ImageUploaderController {
     private StorageService storageService;
@@ -26,11 +28,31 @@ public class ImageUploaderController {
         this.storageService = storageService;
     }
 
+//    @GetMapping("/")
+//    public ResponseEntity<Message> greeting() {
+//        log.info("📡 greeting()");
+//        val message = new Message("welcome to image-uploader-api");
+//        return new ResponseEntity(message, HttpStatus.OK);
+//    }
+
     @GetMapping("/")
-    public ResponseEntity<Message> greeting() {
-        log.info("📡 greeting()");
-        val message = new Message("welcome to image-uploader-api");
-        return new ResponseEntity(message, HttpStatus.OK);
+    public String greeting() {
+        return "uploadForm";
+    }
+
+//    @PostMapping("/upload")
+
+    @Async
+    @PostMapping("/")
+    @ResponseBody
+    public CompletableFuture<StoreFileReport> handleFileUpload(@RequestParam("file") MultipartFile multipartFile) {
+        log.info("📡 handleFileUpload()");
+        try {
+            return storageService.store(multipartFile);
+        } catch(Exception exception) {
+            log.info("🚫 handleFileUpload() #exception: " + exception);
+            return CompletableFuture.supplyAsync( () -> new StoreFileReport(false, exception.getMessage()));
+        }
     }
 
     @Data
