@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.he.imageuploader.context.StorageProperties;
 import org.he.imageuploader.domain.service.StorageService;
-import org.he.imageuploader.utils.MultipartFilePredicates;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -18,12 +17,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static org.he.imageuploader.utils.CommonAssertions.assertIsValidString;
-import static org.he.imageuploader.utils.MultipartFilePredicates.multipartFileIsEmpty;
-import static org.he.imageuploader.utils.MultipartFilePredicates.multipartFileIsValidOriginalFilename;
 
 @Slf4j()
 @Service
@@ -68,6 +63,7 @@ public class DefaultStorageService implements StorageService {
     @Override
     public Boolean storeFile(Boolean isDeleteSuccess, MultipartFile multipartFile) {
         log.info("🚧 storeFile()");
+
         if (!isDeleteSuccess) {
             log.info("🚩 storeFile() previous delete failed, can not store the new file");
             return false;
