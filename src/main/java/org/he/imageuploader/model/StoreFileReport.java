@@ -10,4 +10,10 @@ import lombok.NoArgsConstructor;
 public class StoreFileReport {
     private Boolean isStored = false;
     private String messageError = "";
+    private String file = "";
+
+    public StoreFileReport(Boolean isStored, String messageError) {
+        this.isStored = isStored;
+        this.messageError = messageError;
+    }
 }

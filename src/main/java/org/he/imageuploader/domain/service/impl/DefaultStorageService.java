@@ -33,32 +33,25 @@ public class DefaultStorageService implements StorageService {
 
     @Override
     public Boolean init() {
-        log.info("🚧 init()");
-        try {
-            val path = Files.createDirectories(rootStorage);
-            return Files.exists(path);
-        } catch(Exception exception) {
-            log.info("🚫 () #exception: " + exception);
-            return false;
-        }
+        return cleanRootStorage();
     }
 
     @Override
     public CompletableFuture<StoreFileReport> store(MultipartFile multipartFile) {
         var report = new StoreFileReport();
-
         return CompletableFuture
-                .supplyAsync(() -> deleteAll())
+                .supplyAsync(() -> cleanRootStorage())
                 .completeOnTimeout(false, 5000, TimeUnit.MILLISECONDS)
                 .thenApply(it -> storeFile(it, multipartFile));
     }
 
+
     @Override
-    public StoreFileReport storeFile(Boolean isDeleteSuccess, MultipartFile multipartFile) {
-        log.info("🚧 storeFile()");
+    public StoreFileReport storeFile(Boolean isDeleteAllSuccess, MultipartFile multipartFile) {
+        log.info("🚧 storeFile() #isDeleteAllSuccess: " + isDeleteAllSuccess);
         val storeFileReport = new StoreFileReport();
 
-        if (!isDeleteSuccess) {
+        if (!isDeleteAllSuccess) {
             log.info("🚩 storeFile() previous delete failed, can not store the new file");
             return new StoreFileReport(false, "previous delete failed, can not store the new file");
         }
@@ -90,7 +83,7 @@ public class DefaultStorageService implements StorageService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
                 if (Files.exists(destinationFile)) {
-                    return new StoreFileReport(true, "");
+                    return new StoreFileReport(true, "", destinationFile.toString());
                 } else {
                     return new StoreFileReport(false, "check if new file exists failed");
                 }
@@ -132,14 +125,28 @@ public class DefaultStorageService implements StorageService {
         }
     }
 
+    public Boolean cleanRootStorage() {
+        // remove rootStorage folder and content
+        deleteAll();
+
+        // create rootStorage
+        try {
+            val path = Files.createDirectories(rootStorage);
+            return Files.exists(path);
+        } catch(Exception exception) {
+            log.info("🚫 () #exception: " + exception);
+            return false;
+        }
+    }
+
+
     @Override
-    public Boolean deleteAll() {
+    public void deleteAll() {
         log.info("🚧 deleteAll() #rootLocation: " + rootStorage);
 
         try {
             if (!Files.exists(rootStorage)) {
                 log.info("🚧 deleteAll() targetFolder does not exists aborting operation");
-                return true;
             }
 
             Files.walk(rootStorage)
@@ -150,12 +157,8 @@ public class DefaultStorageService implements StorageService {
                             log.info("🚫 deleteAll.walk() #exception: " + exception);
                         }
                     });
-
-            return true;
-
         } catch(Exception exception) {
             log.info("🚫 deleteAll() #exception: " + exception);
-            return false;
         }
     }
 }
