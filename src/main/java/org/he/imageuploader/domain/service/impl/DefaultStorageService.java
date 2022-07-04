@@ -2,19 +2,22 @@ package org.he.imageuploader.domain.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.he.imageuploader.context.StorageProperties;
 import org.he.imageuploader.domain.service.StorageService;
 import org.he.imageuploader.model.StoreFileReport;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -23,22 +26,31 @@ import static org.he.imageuploader.utils.CommonAssertions.assertIsValidString;
 @Slf4j()
 @Service
 public class DefaultStorageService implements StorageService {
-    private final Path rootStorage;
-    private final String PUBLIC_FOLDER = "public";
+    private Path rootStorage;
+    private DeleteDirectory deleteDirectory;
     
     @Autowired
-    public DefaultStorageService(StorageProperties storageProperties) {
-        this.rootStorage = Paths.get(PUBLIC_FOLDER, storageProperties.getLocation());
+    public DefaultStorageService(DeleteDirectory deleteDirectory) {
+        this.deleteDirectory = deleteDirectory;
+        try {
+            this.rootStorage =
+                    Paths.get(
+                            Paths.get(this.getClass().getClassLoader().getResource("static").toURI()).toString(),
+                            "uploads"
+                    );
+        } catch(Exception exception) {
+            log.info("🚫 () #exception: " + exception);
+        }
     }
 
     @Override
     public Boolean init() {
+        log.info("🚧 init()");
         return cleanRootStorage();
     }
 
     @Override
     public CompletableFuture<StoreFileReport> store(MultipartFile multipartFile) {
-        var report = new StoreFileReport();
         return CompletableFuture
                 .supplyAsync(() -> cleanRootStorage())
                 .completeOnTimeout(false, 5000, TimeUnit.MILLISECONDS)
@@ -49,7 +61,6 @@ public class DefaultStorageService implements StorageService {
     @Override
     public StoreFileReport storeFile(Boolean isDeleteAllSuccess, MultipartFile multipartFile) {
         log.info("🚧 storeFile() #isDeleteAllSuccess: " + isDeleteAllSuccess);
-        val storeFileReport = new StoreFileReport();
 
         if (!isDeleteAllSuccess) {
             log.info("🚩 storeFile() previous delete failed, can not store the new file");
@@ -83,7 +94,8 @@ public class DefaultStorageService implements StorageService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
                 if (Files.exists(destinationFile)) {
-                    return new StoreFileReport(true, "", destinationFile.toString());
+                    val file = Paths.get("uploads", destinationFile.getFileName().toString()).toString();
+                    return new StoreFileReport(true, "", file);
                 } else {
                     return new StoreFileReport(false, "check if new file exists failed");
                 }
@@ -131,7 +143,7 @@ public class DefaultStorageService implements StorageService {
 
         // create rootStorage
         try {
-            val path = Files.createDirectories(rootStorage);
+            val path = Files.createDirectory(rootStorage);
             return Files.exists(path);
         } catch(Exception exception) {
             log.info("🚫 () #exception: " + exception);
@@ -149,16 +161,22 @@ public class DefaultStorageService implements StorageService {
                 log.info("🚧 deleteAll() targetFolder does not exists aborting operation");
             }
 
-            Files.walk(rootStorage)
-                    .forEach(it -> {
-                        try {
-                            Files.deleteIfExists(it);
-                        } catch(Exception exception) {
-                            log.info("🚫 deleteAll.walk() #exception: " + exception);
-                        }
-                    });
+//            Files.walk(rootStorage)
+//                    .forEach(it -> {
+//                        log.info("|__ 🚧 deleteAll() walk #it: " + it.getFileName());
+//                        try {
+//                            Files.deleteIfExists(it);
+//                        } catch(Exception exception) {
+//                            log.info("🚫 deleteAll.walk() #exception: " + exception);
+//                        }
+//                    });
+
+            val opts = EnumSet.of(FileVisitOption.FOLLOW_LINKS);
+            Files.walkFileTree(rootStorage, opts, Integer.MAX_VALUE, deleteDirectory);
         } catch(Exception exception) {
             log.info("🚫 deleteAll() #exception: " + exception);
         }
     }
+
+
 }
