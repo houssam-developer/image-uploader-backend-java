@@ -28,14 +28,12 @@ public class DefaultStorageService implements StorageService {
     public DefaultStorageService(DeleteDirectory deleteDirectory) {
         this.deleteDirectory = deleteDirectory;
         try {
-
-            log.info("🚧 DefaultStorageService() #: " + Paths.get("../").toAbsolutePath());
-            val resourcePath = Paths.get((this.getClass().getClassLoader().getResource("")).toString());
-
             rootStorage = Paths.get(
-                    Paths.get(".").toAbsolutePath().normalize().toString(),
+                    Paths.get("./").toAbsolutePath().normalize().toString(),
                     "public",
-                    "uploads");
+                    "uploads").normalize();
+
+            log.info("🚧 DefaultStorageService() #rootStorage: " +  rootStorage);
 
         } catch(Exception exception) {
             log.info("🚫 () #exception: " + exception);
@@ -58,10 +56,10 @@ public class DefaultStorageService implements StorageService {
 
 
     @Override
-    public StoreFileReport storeFile(Boolean isDeleteAllSuccess, MultipartFile multipartFile) {
-        log.info("🚧 storeFile() #isDeleteAllSuccess: " + isDeleteAllSuccess);
+    public StoreFileReport storeFile(Boolean isDeleteSuccess, MultipartFile multipartFile) {
+        log.info("🚧 storeFile() #isDeleteAllSuccess: " + isDeleteSuccess);
 
-        if (!isDeleteAllSuccess) {
+        if (!isDeleteSuccess) {
             log.info("🚩 storeFile() previous delete failed, can not store the new file");
             return new StoreFileReport(false, "previous delete failed, can not store the new file");
         }
@@ -93,7 +91,8 @@ public class DefaultStorageService implements StorageService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
                 if (Files.exists(destinationFile)) {
-                    val file = Paths.get( "public", "uploads", destinationFile.getFileName().toString()).toString();
+                    // standard url without Paths to avoid backslash in windows os
+                    val file = "uploads/" + destinationFile.getFileName().toString();
                     return new StoreFileReport(true, "", file);
                 } else {
                     return new StoreFileReport(false, "check if new file exists failed");
@@ -132,7 +131,6 @@ public class DefaultStorageService implements StorageService {
         log.info("🚧 loadAsResource()");
         try {
             val file = load(filename);
-            //return loadAsBytes(file);
             val resource = new UrlResource(file.toUri());
 
             if (resource.exists() || resource.isReadable()) {
@@ -173,16 +171,6 @@ public class DefaultStorageService implements StorageService {
             if (!Files.exists(rootStorage)) {
                 log.info("🚧 deleteAll() targetFolder does not exists aborting operation");
             }
-
-//            Files.walk(rootStorage)
-//                    .forEach(it -> {
-//                        log.info("|__ 🚧 deleteAll() walk #it: " + it.getFileName());
-//                        try {
-//                            Files.deleteIfExists(it);
-//                        } catch(Exception exception) {
-//                            log.info("🚫 deleteAll.walk() #exception: " + exception);
-//                        }
-//                    });
 
             val opts = EnumSet.of(FileVisitOption.FOLLOW_LINKS);
             Files.walkFileTree(rootStorage, opts, Integer.MAX_VALUE, deleteDirectory);

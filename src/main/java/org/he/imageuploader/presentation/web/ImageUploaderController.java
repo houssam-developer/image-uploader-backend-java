@@ -37,11 +37,6 @@ public class ImageUploaderController {
         return new ResponseEntity(message, HttpStatus.OK);
     }
 
-//    @GetMapping("/")
-//    public String greeting() {
-//        return "uploadForm";
-//    }
-
     @PostMapping("/upload")
     @ResponseBody
     public CompletableFuture<StoreFileReport> handleFileUpload(@RequestParam("myfile") MultipartFile multipartFile) {
@@ -57,7 +52,7 @@ public class ImageUploaderController {
     }
 
     // TO GET FILE IN WEB BROWSER
-    @GetMapping(value = "/files/{filename:.+}",  consumes = MediaType.ALL_VALUE, produces = MediaType.IMAGE_JPEG_VALUE)
+    @GetMapping(value = "/uploads/{filename:.+}",  consumes = MediaType.ALL_VALUE, produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> serveFile(@PathVariable String filename) {
         log.info("📡 serveFile()");
 

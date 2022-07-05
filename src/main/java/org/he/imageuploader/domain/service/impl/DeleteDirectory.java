@@ -2,7 +2,6 @@ package org.he.imageuploader.domain.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
