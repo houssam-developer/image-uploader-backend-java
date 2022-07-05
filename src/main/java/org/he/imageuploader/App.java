@@ -1,5 +1,7 @@
 package org.he.imageuploader;
 
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.he.imageuploader.domain.service.StorageService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -20,31 +22,25 @@ public class App {
     public static void main(String[] args) {
 
         SpringApplication.run(App.class, args);
-//        new Essai();
+
+        //new Essai();
 
     }
 
+//    @Slf4j
 //    static class Essai {
 //        Path rootStorage;
 //
-//        public Essai() {
+//        public Essai()  {
+//            rootStorage = Paths.get(this.getClass().getClassLoader().getResource("").getPath(), "public", "uploads");
 //            try {
-//            this.rootStorage =
-//                    Paths.get(
-//                            Paths.get(this.getClass().getClassLoader().getResource("static").toURI()).toString(),
-//                            "uploads"
-//                    );
-//
-//                Files.deleteIfExists(rootStorage);
-//                Files.createDirectory(rootStorage);
-//
-//            } catch (URISyntaxException e) {
-//                throw new RuntimeException(e);
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
+//                Files.createDirectories(rootStorage);
+//            } catch(Exception exception) {
+//                log.info("🚫 () #exception: " + exception);
 //            }
+//            System.out.println(this.getClass().getResource(""));
 //        }
-//    }
+//   }
 
     @Bean
     CommandLineRunner init(StorageService storageService) {

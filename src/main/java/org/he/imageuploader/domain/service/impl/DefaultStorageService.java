@@ -5,18 +5,13 @@ import lombok.val;
 import org.he.imageuploader.domain.service.StorageService;
 import org.he.imageuploader.model.StoreFileReport;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -33,11 +28,15 @@ public class DefaultStorageService implements StorageService {
     public DefaultStorageService(DeleteDirectory deleteDirectory) {
         this.deleteDirectory = deleteDirectory;
         try {
-            this.rootStorage =
-                    Paths.get(
-                            Paths.get(this.getClass().getClassLoader().getResource("static").toURI()).toString(),
-                            "uploads"
-                    );
+
+            log.info("🚧 DefaultStorageService() #: " + Paths.get("../").toAbsolutePath());
+            val resourcePath = Paths.get((this.getClass().getClassLoader().getResource("")).toString());
+
+            rootStorage = Paths.get(
+                    Paths.get(".").toAbsolutePath().normalize().toString(),
+                    "public",
+                    "uploads");
+
         } catch(Exception exception) {
             log.info("🚫 () #exception: " + exception);
         }
@@ -85,7 +84,7 @@ public class DefaultStorageService implements StorageService {
                     .toAbsolutePath();
 
             if (!destinationFile.getParent().equals(this.rootStorage.toAbsolutePath())) {
-                log.info("🚧 storeFile() 🚩 Cannot store file outside current directory");
+                log.info("🚧 storeFile() 🚩 Cannot store file outside current directory #rootStorage: " + this.rootStorage.toAbsolutePath());
                 return new StoreFileReport(false, "Cannot store file outside current directory");
             }
 
@@ -94,7 +93,7 @@ public class DefaultStorageService implements StorageService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
                 if (Files.exists(destinationFile)) {
-                    val file = Paths.get("uploads", destinationFile.getFileName().toString()).toString();
+                    val file = Paths.get( "public", "uploads", destinationFile.getFileName().toString()).toString();
                     return new StoreFileReport(true, "", file);
                 } else {
                     return new StoreFileReport(false, "check if new file exists failed");
@@ -117,10 +116,23 @@ public class DefaultStorageService implements StorageService {
     }
 
     @Override
+    public byte[] loadAsBytes(String filename) {
+        log.info("🚧 loadAsBytes() #filename: " + filename);
+        try {
+            val file = load(filename);
+            return Files.readAllBytes(file);
+        } catch (IOException e) {
+            log.info("🚫 loadAsBytes() #e: ", e);
+            return new byte[0];
+        }
+    }
+
+    @Override
     public Resource loadAsResource(String filename) {
         log.info("🚧 loadAsResource()");
         try {
             val file = load(filename);
+            //return loadAsBytes(file);
             val resource = new UrlResource(file.toUri());
 
             if (resource.exists() || resource.isReadable()) {
@@ -143,7 +155,8 @@ public class DefaultStorageService implements StorageService {
 
         // create rootStorage
         try {
-            val path = Files.createDirectory(rootStorage);
+            //val path = Files.createDirectory(rootStorage);
+            val path = Files.createDirectories(rootStorage);
             return Files.exists(path);
         } catch(Exception exception) {
             log.info("🚫 () #exception: " + exception);

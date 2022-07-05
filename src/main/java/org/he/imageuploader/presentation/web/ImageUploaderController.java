@@ -8,13 +8,14 @@ import lombok.val;
 import org.he.imageuploader.domain.service.StorageService;
 import org.he.imageuploader.model.StoreFileReport;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.function.ServerRequest;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -54,6 +55,29 @@ public class ImageUploaderController {
             return CompletableFuture.supplyAsync( () -> new StoreFileReport(false, exception.getMessage()));
         }
     }
+
+    // TO GET FILE IN WEB BROWSER
+    @GetMapping(value = "/files/{filename:.+}",  consumes = MediaType.ALL_VALUE, produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> serveFile(@PathVariable String filename) {
+        log.info("📡 serveFile()");
+
+        val data = storageService.loadAsBytes(filename);
+        return ResponseEntity.ok(data);
+    }
+
+//    // TO DOWNLOAD FILE
+//    @GetMapping("/files/{filename:.+}")
+//    @ResponseBody
+//    public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
+//        val file = storageService.loadAsResource(filename);
+//
+//        val headerValues ="attachment; filename=\"" + file.getFilename() + "\"";
+//
+//        return ResponseEntity
+//                .ok()
+//                .header(HttpHeaders.CONTENT_DISPOSITION, headerValues)
+//                .body(file);
+//    }
 
     @Data
     @NoArgsConstructor
