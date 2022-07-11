@@ -50,7 +50,7 @@ And I hope to make more beautifuls websites and become an expert in full-stack d
 <!-- This section should list any major frameworks that you built your project using. Here are a few examples.-->
 
 - [Java 17] (www.java.com)
-- [Spring](https://spring.io/)
+- [Spring] (https://spring.io/)
 - [Hibernate] (https://hibernate.org/)
 - [H2] (https://www.h2database.com/html/main.html)
 - [Lombok] (https://projectlombok.org/)
@@ -92,7 +92,7 @@ $ mvn clean install
 <!-- This section should list any articles or add-ons/plugins that helps you to complete the project. This is optional but it will help you in the future. For example -->
 
 - [Java 17] (www.java.com)
-- [Spring](https://spring.io/)
+- [Spring] (https://spring.io/)
 - [Hibernate] (https://hibernate.org/)
 - [H2] (https://www.h2database.com/html/main.html)
 - [Lombok] (https://projectlombok.org/)
